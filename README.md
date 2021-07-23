@@ -1,4 +1,4 @@
-## Rxparse - text parsing in teh spirit of Rexx
+## Rxparse - text parsing in the spirit of Rexx
 
 `rxparse` is a tool that brings the power and intuitive simplicity of the Rexx `parse` statement to the command line.
 
