@@ -6,7 +6,7 @@
 
 ```
 Usage of ./rxparse:
-  -f string
+  -d string
         The default field delimiter (default " *")
   -n    Do not emit newline at the end of each output line
   -o string
@@ -76,10 +76,10 @@ First, all 10 characters are read into `fulldate`. Then the input is captured ba
 
 ### Default delimiters
 
-It is possible to omit delimters entirely. If a name is followed immediately be another name, they are assumed to be delimited by the *default* delimiter. By default, this is ' *', ie. any number of spaces, but you can change it using the `-f` flag. So all the above examples could be replaced by:
+It is possible to omit delimters entirely. If a name is followed immediately be another name, they are assumed to be delimited by the *default* delimiter. By default, this is ' *', ie. any number of spaces, but you can change it using the `-d` flag. So all the above examples could be replaced by:
 
 ```
-$ date -I | ./rxparse -f '-' -p "year month day" -o '{{ .day }}/{{ .month }}/{{ .year }}'
+$ date -I | ./rxparse -d '-' -p "year month day" -o '{{ .day }}/{{ .month }}/{{ .year }}'
 22/07/2021
 ```
 

@@ -25,7 +25,7 @@ func main() {
 
 	flag.BoolVar(&noTrim, "t", false, "Do not trim whitespace from start and end of parsed values")
 
-	flag.StringVar(&fieldSep, "f", " *", "The default field delimiter")
+	flag.StringVar(&fieldSep, "d", " *", "The default field delimiter")
 
 	var noNewline bool
 	flag.BoolVar(&noNewline, "n", false, "Do not emit newline at the end of each output line")
