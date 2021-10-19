@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -14,6 +15,7 @@ import (
 )
 
 var noTrim bool
+var isJson bool
 var fieldSep string
 
 func main() {
@@ -21,7 +23,7 @@ func main() {
 	flag.StringVar(&parse, "p", "all", "The parse expression")
 
 	var output string
-	flag.StringVar(&output, "o", "{{ .all }}", "The output expression as a Go template")
+	flag.StringVar(&output, "o", "{{ .all }}", "The output expression. It can either be 'json' to output the results as an array of JSON objects, or a Go template which will be used to format the outout.")
 
 	flag.BoolVar(&noTrim, "t", false, "Do not trim whitespace from start and end of parsed values")
 
@@ -36,11 +38,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	var templ *template.Template
 	var err error
-	templ, err := template.New("main").Parse(output)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+
+	if output == "json" {
+		isJson = true
+	} else {
+		templ, err = template.New("main").Parse(output)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
 
 	defer func() {
@@ -73,6 +81,10 @@ func main() {
 	in := bufio.NewScanner(file)
 	in.Split(bufio.ScanLines)
 
+	if isJson {
+		fmt.Println("[")
+	}
+	var line int = 0
 	for in.Scan() {
 		text := []byte(in.Text())
 		next := 0
@@ -85,10 +97,24 @@ func main() {
 			next = chopper.Chop(text, next, values)
 		}
 
-		templ.Execute(os.Stdout, values)
-		if !noNewline {
-			fmt.Println("")
+		if isJson {
+			if line > 0 {
+				fmt.Println(",")
+			}
+			line++
+			if data, err := json.Marshal(values); err == nil {
+				fmt.Printf("  %s", string(data))
+			}
+
+		} else {
+			templ.Execute(os.Stdout, values)
+			if !noNewline {
+				fmt.Println("")
+			}
 		}
+	}
+	if isJson {
+		fmt.Printf("\n]\n")
 	}
 
 }
