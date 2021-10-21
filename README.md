@@ -1,26 +1,53 @@
-## Rxparse - text parsing in the spirit of Rexx
+## `rxparse` - text parsing in the spirit of Rexx
 
-`rxparse` is a tool that brings the power and intuitive simplicity of the Rexx `parse` statement to the command line.
+`rxparse` is a tool that brings the power and intuitive simplicity of the Rexx `parse` statement to the command line. It allows you to extract items from a line of input (either from a file or stdin) and assemble them into useful out, usually for feeding into other processes or display. 
 
-`rxparse` allows you to split up and reassemble tokens from a line of input using a simple format string. For complex cases with looping and conditions, `awk` or `perl` may be better choices. But for simple extraction of tokens, `rxparse` makes the job much easier.
+For complex cases with looping and conditions, `awk` or `perl` may be better choices. But for simple extraction of tokens, `rxparse` makes the job much easier.
 
 ```
 Usage of rxparse:
-  -d string
-        The default field delimiter (default " *")
-  -n    Do not emit newline at the end of each output line
+  -p string
+        The parse expression (default: "all")
   -o string
         The output expression. 
         Can either be the word 'json', in which case an array of JSON objects is output,
-        or a Go template which is used to format the output
-  -p string
-        The parse expression (default: no values are captured "all")
+        or a Go template which is used to format the output (default: "{{ .all }}")
+  -d string
+        The default field delimiter (default " *")
+  -n    Do not emit newline at the end of each output line
   -t    Do not trim whitespace from start and end of parsed values
+```
+
+The `-p` flag is a list of tokens, ie. (unquoted) names identifying strings of captured text (or `.` to drop captured text), separated by (quoted or numeric) delimiters which define the limit of input captured into the preceding name. However delimiters can be omitted, in which case a default delimiter is used. 
+
+The `-o` flag is either a Go template that allows the names to be referenced directly, or simply `json`, in which case the 
+output is a JSON array of objects with names and captured text as each `<key>: <value>`. 
+
+## Examples
+
+```
+$ date -I | rxparse -p "year '-' month '-' day" -o '{{ .day }}/{{ .month }}/{{ .year }}'
+22/07/2021
+```
+```
+$ ls -la | tail -n +2 | rxparse -p ". . . . size . . . name" -o json
+[
+  {"name":".","size":"4096"},
+  {"name":"..","size":"4096"},
+  {"name":".git","size":"4096"},
+  {"name":".github","size":"4096"},
+  {"name":".gitignore","size":"16"},
+  {"name":"go.mod","size":"50"},
+  {"name":"main.go","size":"7188"},
+  {"name":"README.md","size":"4104"},
+  {"name":"rxparse","size":"3548218"},
+  {"name":".vscode","size":"4096"}
+]
 ```
 
 ## Text delimiters
 
-The `-p` flag is where the power lies. It should be read as a space-separated list of names, ie unquoted, non-numeric text, optionally separated by quoted or numeric delimiters. Input is captured into a name up to the following delimiter. Surrounding whitespace is dropped from the capture unless the `-t` option is provided. `.` acts like a name but any input captured is ignored. 
+The `-p` flag is where the power lies. Input is captured into a name up to the following delimiter. Surrounding whitespace is dropped from the captured text unless the `-t` option is provided. `.` acts like a name but any input captured is dropped. 
 
 Eg: 
 
@@ -85,29 +112,3 @@ $ date -I | rxparse -d '-' -p "year month day" -o '{{ .day }}/{{ .month }}/{{ .y
 22/07/2021
 ```
 
-## Examples
-
-```
-$ ls -la | tail -n +2 | rxparse -p ". . . . size . . . name" -o json
-[
-  {"name":".","size":"4096"},
-  {"name":"..","size":"4096"},
-  {"name":".git","size":"4096"},
-  {"name":".github","size":"4096"},
-  {"name":".gitignore","size":"16"},
-  {"name":"go.mod","size":"50"},
-  {"name":"main.go","size":"7188"},
-  {"name":"README.md","size":"4104"},
-  {"name":"rxparse","size":"3548218"},
-  {"name":".vscode","size":"4096"}
-]
-```
-
-```
-ls -la | tail -n +2 | rxparse -p ". . . . size . . . name" -o "File {{ .name }} is {{ .size }} bytes"
-File go.mod is 50 bytes
-File main.go is 6608 bytes
-File parse is 2334720 bytes
-File rxparse is 3355526 bytes
-File test.txt is 12 bytes
-```

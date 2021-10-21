@@ -46,7 +46,7 @@ func main() {
 	} else {
 		templ, err = template.New("main").Parse(output)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}
@@ -54,7 +54,7 @@ func main() {
 	defer func() {
 		err := recover()
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	}()
@@ -71,7 +71,7 @@ func main() {
 		file, err = os.Open(flag.Arg(0))
 		defer file.Close()
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 	} else {
@@ -103,7 +103,7 @@ func main() {
 			}
 			line++
 			if data, err := json.Marshal(values); err == nil {
-				fmt.Printf("  %s", string(data))
+				fmt.Fprintf(os.Stderr, "  %s", string(data))
 			}
 
 		} else {
@@ -131,6 +131,8 @@ func Text(text []byte) string {
 // up to either an absolute position in the input, a relative position from start, or the next instance of a text delimiter,
 // and saves it under a name in the 'values' map (unless the name is '.', in which case it is dropped).
 type Chopper interface {
+	// Chop input from start up to the implementors delimiter, storing any value under name in the map,
+	// and return the next starting point
 	Chop(input []byte, start int, values map[string]string) int
 }
 
@@ -173,23 +175,27 @@ func (dc *DelimChunk) Chop(input []byte, start int, values map[string]string) in
 	var text []byte
 	var end int
 
+	// If there is no delimiter, this stores the remaining text up to the end of input.
 	if dc.until == "" {
 		text = input[start:]
 		end = start + len(text)
 
 	} else {
-
+		// Find the next delimiter
 		endText := bytes.Index(input[start:], []byte(dc.until))
 
+		// If none found, store remaining text as if no more delimiters
 		if endText == -1 {
 			text = input[start:]
 			end = start + len(text)
 
 		} else {
+			// Otherwise capture text up to next delimiter
 			text = input[start : start+endText]
 			var delimLen int = len(dc.until)
 			end = start + len(text) + delimLen
 
+			// skip contiguous delimiters if required
 			if dc.skipAll {
 				for end < len(input) && string(input[end:end+delimLen]) == dc.until {
 					end += delimLen
@@ -198,6 +204,7 @@ func (dc *DelimChunk) Chop(input []byte, start int, values map[string]string) in
 		}
 	}
 
+	// Save captured text under name
 	if dc.name != "." {
 		values[dc.name] = Text(text)
 	}
