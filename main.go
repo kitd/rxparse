@@ -20,10 +20,9 @@ var fieldSep string
 
 func main() {
 	var parse string
-	flag.StringVar(&parse, "p", "all", "The parse expression")
 
 	var output string
-	flag.StringVar(&output, "o", "{{ .all }}", "The output expression. It can either be 'json' to output the results as an array of JSON objects, or a Go template which will be used to format the outout.")
+	flag.StringVar(&output, "o", "json", "The output expression. It can either be 'json' (the default) to output the results as an array of JSON objects, or a Go template which will be used to format the outout.")
 
 	flag.BoolVar(&noTrim, "t", false, "Do not trim whitespace from start and end of parsed values")
 
@@ -33,7 +32,7 @@ func main() {
 	flag.BoolVar(&noNewline, "n", false, "Do not emit newline at the end of each output line")
 
 	flag.Parse()
-	if flag.NFlag() == 0 {
+	if flag.NArg() == 0 {
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -59,6 +58,7 @@ func main() {
 		}
 	}()
 
+	parse = strings.Join(flag.Args(), " ")
 	// NB: the following line might seem redundant, but the Unquote function also
 	// unescapes any escape char provided by the user in the parse format string.
 	parse, _ = strconv.Unquote(`"` + parse + `"`)
@@ -66,19 +66,7 @@ func main() {
 	choppers := Parse(parse)
 	var values map[string]string = make(map[string]string)
 
-	var file *os.File
-	if flag.NArg() > 0 {
-		file, err = os.Open(flag.Arg(0))
-		defer file.Close()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-	} else {
-		file = os.Stdin
-	}
-
-	in := bufio.NewScanner(file)
+	in := bufio.NewScanner(os.Stdin)
 	in.Split(bufio.ScanLines)
 
 	if isJson {
@@ -297,6 +285,7 @@ func Parse(parse string) []Chopper {
 
 			// If quoted text, add chopper to delimit input at next instance of the text
 			if (next[0] == '"' && next[len(next)-1] == '"') ||
+				(next[0] == '`' && next[len(next)-1] == '`') ||
 				(next[0] == '\'' && next[len(next)-1] == '\'') {
 				choppers = append(choppers, CreateDelimChunk(name, strings.Trim(next, `'"`)))
 				name = ""
